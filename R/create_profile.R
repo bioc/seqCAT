@@ -321,7 +321,7 @@ create_profile_R <- function(vcf_file,
 filter_annotations <- function(data) {
 
     # Separate ANN into rows
-    data <- tidyr::unnest(data, cols = c("ANN"))
+    data <- tidyr::unnest(data, !!rlang::sym("ANN"))
 
     # Separate ANN into columns
     data <- tidyr::separate_(data,
@@ -357,6 +357,7 @@ filter_annotations <- function(data) {
                           "-CDS_pos",
                           "-protein_pos",
                           "-distance")
+    data <- as.data.frame(data)
 
     # Impact factor priority
     priority <- c("HIGH", "MODERATE", "LOW", "MODIFIER")
