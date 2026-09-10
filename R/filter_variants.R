@@ -49,10 +49,10 @@ filter_variants <- function(data,
 
     # Remove variants below the given depth threshold
     gr <- gr[gr$DP >= min_depth & !is.na(gr$DP), ]
-    
+
     # Remove "chr" from seqlevels
     GenomeInfoDb::seqlevels(gr) <- gsub("chr", "", GenomeInfoDb::seqlevels(gr))
-    
+
     # Remove mitochondrial variants, if applicable
     if (filter_mt) {
         gr <- GenomeInfoDb::dropSeqlevels(gr, "MT", pruning.mode = "coarse")
@@ -64,28 +64,32 @@ filter_variants <- function(data,
                                                     pruning.mode = "coarse")
     }
 
-    # Convert to data frame
-    data <- GenomicRanges::as.data.frame(gr)
+    # Convert to data frame; the row names must be set explicitly, as some
+    # versions of `GenomicRanges::as.data.frame` use the input's names for
+    # this by default, while others add them as a separate `names` column
+    # and leave the row names as an integer sequence instead
+    data <- GenomicRanges::as.data.frame(gr, row.names = names(gr))
 
     # Remove unwanted columns
     to_remove <- c("end",
                    "width",
                    "strand",
                    "paramRangeID",
-                   "QUAL")
+                   "QUAL",
+                   "names")
     data <- data[, !(names(data) %in% to_remove)]
     names(data) <- c("chr", "pos", names(data)[3:ncol(data)])
 
     # Check for <NON_REF> sites (i.e. input may be a gVCF file)
     if ("<NON_REF>" %in% data$ALT) {
-        
+
         # Check for non-<NON_REF> ALT alleles
         non_refs <- nrow(data[data$ALT == "<NON_REF>", ])
         if (nrow(data) == non_refs) {
 
             # Only <NON_REF> alleles: stop and issue error
             stop("VCF only contains <NON_REF> alleles; input may be a gVCF")
-        
+
         } else {
 
             # Some <NON_REF> alleles: isuee warning and keep confident alleles
